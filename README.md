@@ -41,6 +41,12 @@ This will:
 dpkg -i pve-qemu/pve-qemu-kvm_9.2.0-7_amd64.deb
 ```
 
+> **Arch Linux**: The build script automatically switches to `pacman` for dependency
+> installation. Install `dpkg` from the official repositories first, then use
+> `pacman` to install the remaining build dependencies when prompted. The output
+> package is still a Debian archive, so use tools such as `debtap` if you wish to
+> convert it to a native Arch package.
+
 ### OVMF Setup
 
 1. Clone the repository (if not already):
@@ -64,6 +70,10 @@ This will:
 ```bash
 dpkg -i pve-edk2-firmware/pve-edk2-firmware-ovmf_4.2025.02-4_all.deb
 ```
+
+> **Arch Linux**: As with QEMU, the script uses `pacman` when available. Ensure
+> `dpkg` is installed beforehand so the Debian package can be generated. Use a
+> conversion tool if you need an Arch-specific package format.
 
 ## Virtual Machine Configuration
 
