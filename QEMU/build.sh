@@ -1,6 +1,39 @@
 #!/bin/bash
-apt-get update
-apt-get install wget libacl1-dev libaio-dev libattr1-dev libcap-ng-dev libcurl4-gnutls-dev libepoxy-dev libfdt-dev libgbm-dev libglusterfs-dev libgnutls28-dev libiscsi-dev libjpeg-dev libnuma-dev libpci-dev libpixman-1-dev libproxmox-backup-qemu0-dev librbd-dev libsdl1.2-dev libseccomp-dev libslirp-dev libspice-protocol-dev libspice-server-dev libsystemd-dev liburing-dev libusb-1.0-0-dev libusbredirparser-dev libvirglrenderer-dev meson python3-sphinx python3-sphinx-rtd-theme quilt xfslibs-dev lintian python3-venv xxd bc devscripts -y
+set -euo pipefail
+
+if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+  SUDO=""
+else
+  SUDO="sudo"
+fi
+
+install_dependencies() {
+  if command -v apt-get >/dev/null 2>&1; then
+    $SUDO apt-get update
+    $SUDO apt-get install wget libacl1-dev libaio-dev libattr1-dev libcap-ng-dev libcurl4-gnutls-dev \
+      libepoxy-dev libfdt-dev libgbm-dev libglusterfs-dev libgnutls28-dev libiscsi-dev libjpeg-dev \
+      libnuma-dev libpci-dev libpixman-1-dev libproxmox-backup-qemu0-dev librbd-dev libsdl1.2-dev \
+      libseccomp-dev libslirp-dev libspice-protocol-dev libspice-server-dev libsystemd-dev liburing-dev \
+      libusb-1.0-0-dev libusbredirparser-dev libvirglrenderer-dev meson python3-sphinx \
+      python3-sphinx-rtd-theme quilt xfslibs-dev lintian python3-venv xxd bc devscripts ninja-build \
+      acpica-tools -y
+  elif command -v pacman >/dev/null 2>&1; then
+    local packages=(
+      base-devel git wget python python-virtualenv meson ninja bc vim acpica
+      acl attr libaio libcap-ng curl libepoxy dtc mesa glusterfs gnutls libiscsi libjpeg-turbo
+      numactl libpciaccess pciutils pixman ceph-libs sdl12-compat libseccomp libslirp spice-protocol
+      spice systemd liburing libusb usbredir virglrenderer quilt xfsprogs dpkg python-sphinx
+      python-sphinx_rtd_theme
+    )
+    $SUDO pacman -Syu --needed "${packages[@]}"
+  else
+    echo "Unsupported package manager. Install dependencies manually." >&2
+    exit 1
+  fi
+}
+
+install_dependencies
+
 wget https://github.com/lixiaoliu666/pve-anti-detection/raw/refs/heads/main/hpet.aml
 wget https://raw.githubusercontent.com/lixiaoliu666/pve-anti-detection/refs/heads/9.2.0-6/smbios.h
 wget https://raw.githubusercontent.com/lixiaoliu666/pve-anti-detection/refs/heads/9.2.0-6/smbios.c
@@ -16,7 +49,9 @@ patch -p1 < qemupatch.patch
 git clone git://git.proxmox.com/git/pve-qemu.git
 cd pve-qemu
 git reset --hard 245689b9ae4120994de29b71595ea58abac06f3c
-mk-build-deps --install
+if command -v mk-build-deps >/dev/null 2>&1; then
+  $SUDO mk-build-deps --install
+fi
 git submodule update --init --recursive
 make clean
 cp ../SSDT.patch qemu/
@@ -40,6 +75,8 @@ bash sedpatch.sh
 git diff > qemu-autoGenPatch.patch
 cp qemu-autoGenPatch.patch ../
 cd ..
-rm ../hpet.aml ../ssdt1.aml ../ssdt1.dsl ../ssdt2.aml ../ssdt2.dsl ../hpet.h ../ssdt1.h ../ssdt2.h ../qemupatch.sh ../smbios.c ../smbios.h
-mk-build-deps --install
+rm ../hpet.aml ../ssdt1.aml ../ssdt1.dsl ../ssdt2.aml ../ssdt2.dsl ../hpet.h ../ssdt1.h ../ssdt2.h ../qemupatch.sh ../smbios.c ./smbios.h
+if command -v mk-build-deps >/dev/null 2>&1; then
+  $SUDO mk-build-deps --install
+fi
 make
